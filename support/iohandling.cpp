@@ -1,6 +1,3 @@
-#include "iohandling.h"
-#include "../classes/IOHandlingTag.h"
-#include "encryption.h"
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
@@ -9,22 +6,29 @@
 #include <unordered_map>
 #include <sstream>
 #include <dirent.h>
+#include <random>
 
+#include "iohandling.h"
+#include "encryption.h"
 
 namespace ioh {
-
     const std::string kFilePrefix {"db_"};
     const std::string kFileSuffix {".txt"};
 
     const int kDefaultShift {10};
+    const int kPasswordGenerationLength {16};
 
-
-    void write_file(const std::string& file_path, const std::string &password, const IOHandlingTag& ioHandlingTag, const std::string& plain_text) {
+    void write_file(const std::string& file_path,
+                    const std::string &password,
+                    const IOHandlingTag& ioHandlingTag,
+                    const std::string& plain_text) {
         std::ofstream file(file_path, std::ios::app);
         file << (int) ioHandlingTag << " " << enc::encrypt(plain_text, password.empty() ? kDefaultShift : password.length()) << std::endl;
     }
 
-    std::vector<std::string> read_file(const std::string &file_path, const std::string &password, const IOHandlingTag &ioHandlingTag) {
+    std::vector<std::string> read_file(const std::string &file_path,
+                                       const std::string &password,
+                                       const IOHandlingTag &ioHandlingTag) {
         std::vector<std::string> values;
         std::ifstream file(file_path);
         std::string line;
@@ -44,7 +48,6 @@ namespace ioh {
             }
         }
 
-        // Add the values with a positive net count to the list of values
         for (const auto& [value, count] : value_counts) {
             int net_count = count.first - count.second;
             if (net_count > 0) {
@@ -67,7 +70,7 @@ namespace ioh {
         write_file(file_name, password, IOHandlingTag::DEL_CATEGORY, "fasola");
 
         std::vector<std::string> thing = read_file(file_name, password, IOHandlingTag::CATEGORY);
-        for (std::string v : thing) {
+        for (const std::string& v : thing) {
             std::cout << v << std::endl;
         }
 
@@ -77,26 +80,20 @@ namespace ioh {
     std::vector<std::string> get_available_files() {
         std::vector<std::string> available_files;
 
-        // Open the default directory
         DIR* dir = opendir(".");
         if (dir == NULL) {
-            // opendir failed
             return available_files;
         }
 
-        // Read the files in the directory
         struct dirent* entry;
         while ((entry = readdir(dir)) != NULL) {
-            std::string file_name = entry -> d_name;
-            if (file_name.length() > 3 && file_name.substr(0, 3) == kFilePrefix && file_name.substr(file_name.length() - 4) == kFileSuffix) {
-                // The file name starts with "db_" and ends with ".txt", add it to the list
+            std::string file_name = entry->d_name;
+            if (file_name.find(kFilePrefix) == 0 && file_name.find(kFileSuffix) == file_name.length() - kFileSuffix.length()) {
                 available_files.push_back(file_name);
             }
         }
 
-        // Close the directory
         closedir(dir);
-
         return available_files;
     }
 
@@ -106,6 +103,24 @@ namespace ioh {
 
     std::vector<std::string> ioh::read_file(const std::string &file_path, const IOHandlingTag &ioHandlingTag) {
         return read_file(file_path, "", ioHandlingTag);
+    }
+
+    std::string generate_password() {
+        static const char alphanum[] =
+                "0123456789"
+                "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                "abcdefghijklmnopqrstuvwxyz";
+        std::string password;
+        password.reserve(kPasswordGenerationLength);
+
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> dis(0, sizeof(alphanum) - 2);
+
+        for (int i = 0; i < kPasswordGenerationLength; ++i) {
+            password += alphanum[dis(gen)];
+        }
+        return password;
     }
 
 

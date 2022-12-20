@@ -15,7 +15,6 @@ Session::Session(const std::string &file_path, const std::string &password) : fi
     } else {
         if (passwords.at(0) == password) {
             com::returningUser::password_notification(*this, true);
-            com::returningUser::timestamp_notification(*this);
         } else {
             com::returningUser::password_notification(*this, false);
         }

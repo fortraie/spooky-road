@@ -17,6 +17,8 @@ namespace ioh {
 
     std::vector<std::string> get_available_files();
 
+    std::string generate_password();
+
 }
 
 #endif //PSWMANAGER_SPOOKY_ROAD_IOHANDLING_H

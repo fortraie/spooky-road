@@ -20,6 +20,7 @@ public:
 
     const std::string &getFilePath() const;
     const std::string &getPassword() const;
+
 };
 
 
