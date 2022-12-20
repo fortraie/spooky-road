@@ -1,7 +1,3 @@
-//
-// Created by Jakub Kowalewski on 20/12/2022.
-//
-
 #ifndef PSWMANAGER_SPOOKY_ROAD_IOHANDLINGTAG_H
 #define PSWMANAGER_SPOOKY_ROAD_IOHANDLINGTAG_H
 

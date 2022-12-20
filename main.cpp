@@ -1,10 +1,6 @@
-#include <iostream>
-#include "classes/Session.h"
-
+#include "support/communication.h";
 
 int main() {
-
-    Session ses ("abc");
-
+    com::initialize();
     return 0;
 }
