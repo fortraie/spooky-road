@@ -1,0 +1,21 @@
+//
+// Created by Jakub Kowalewski on 20/12/2022.
+//
+
+#ifndef PSWMANAGER_SPOOKY_ROAD_IOHANDLINGTAG_H
+#define PSWMANAGER_SPOOKY_ROAD_IOHANDLINGTAG_H
+
+
+enum class IOHandlingTag {
+    PASSWORD = 0,
+    DEL_PASSWORD = 00,
+    TIMESTAMP = 1,
+    DEL_TIMESTAMP = 10,
+    ENTRY = 2,
+    DEL_ENTRY = 20,
+    CATEGORY = 3,
+    DEL_CATEGORY = 3
+};
+
+
+#endif //PSWMANAGER_SPOOKY_ROAD_IOHANDLINGTAG_H
