@@ -1,212 +1,150 @@
-//
-// Created by Jakub Kowalewski on 20/12/2022.
-//
-
-#include "communication.h"
 #include <iostream>
 #include <vector>
-#include "../classes/Session.h"
+
+#include "communication.h"
 #include "iohandling.h"
-#include <ctime>
 
-namespace com {
-    void initialize() {
-        std::cout << "Hi! (✿◠‿◠)" << std::endl;
-        std::cout << "Please log in or register:" << std::endl;
-        std::cout << "[0] Log in" << std::endl;
-        std::cout << "[1] Register" << std::endl;
-        std::cout << "[2] Exit" << std::endl;
-
-        int action;
-        std::cin >> action;
-
-        switch (action) {
-            case 0:
-                returning_user();
-                break;
-            case 1:
-                new_user();
-                break;
-            case 2:
-                exit(0);
-                break;
-            default:
-                std::cout << "Invalid input. Please try again." << std::endl;
-                initialize();
-                break;
-        }
-    }
+#define kStandard  "\x1B[0m"
+#define kRed  "\x1B[31m"
+#define kBlue  "\x1B[34m"
+#define kCyan  "\x1B[36m"
 
 
-    void returning_user() {
-        std::cout << "Nice to see you again!" << std::endl;
-        std::cout << "Begin by choosing your database from the list below." << std::endl;
-
-        std::vector<std::string> available_files = ioh::get_available_files();
-        for (int i = 0; i <= available_files.size(); i++) {
-            if (i == available_files.size()) {
-                std::cout << "[" << i << "] " << "Other" << std::endl;
-                break;
-            }
-            std::cout << "[" << i << "] " << available_files.at(i) << std::endl;
-        }
-
-        int action;
-        std::cin >> action;
-
-        std::string file_path;
-        if (action == available_files.size()) {
-            std::cout << "Please enter a file path to the database you're willing to access:" << std::endl;
-            std::cin >> file_path;
-        }
-
-        std::cout << "Please provide the password to the database " << ((action != available_files.size()) ? available_files.at(action) : file_path) << ":" << std::endl;
-        std::string password;
-        std::cin >> password;
-
-        if (action == available_files.size()) {
-            Session session(file_path, password);
-        } else {
-            Session session(available_files.at(action), password);
-        }
-    }
+// Deklaracje funkcji
+void com::initialize();
+void com::returning_user();
+void com::new_user();
+void com::returningUser::password_notification(Session &session, bool status);
+void com::returningUser::initialize(Session &session);
 
 
-    void new_user() {
-        std::cout << "Please provide a password to your new database:" << std::endl;
-        std::cout << "You might consider this randomly generated password: " << ioh::generate_password() << std::endl;
-        std::string password;
-        std::cin >> password;
-
-        Session session(password);
-        std::cout << "Your database has been created successfully!" << std::endl;
-        std::cout << "You can now access it: " << session.getFilePath() << std::endl;
-
-        com::returning_user();
-    }
-
-    void returningUser::password_notification(Session& session, bool status) {
-        returningUser::timestamp_notification(session);
-        if (status == true) {
-            std::cout << "Password is correct!" << std::endl;
-            returningUser::initialize(session);
-        } else {
-            std::cout << "Password is incorrect!" << std::endl;
-            std::vector<std::string> timestamps = ioh::read_file(session.getFilePath(), 0, IOHandlingTag::TIMESTAMP);
-            for (std::string timestamp : timestamps) {
-                ioh::write_file(session.getFilePath(),IOHandlingTag::DEL_TIMESTAMP, timestamp);
-            }
-            ioh::write_file(session.getFilePath(), IOHandlingTag::TIMESTAMP, std::to_string(time(nullptr)));
-        }
-    }
-
-    void returningUser::timestamp_notification(Session& session) {
-       std::vector<std::string> timestamps = ioh::read_file(session.getFilePath(), IOHandlingTag::TIMESTAMP);
-       if (timestamps.size() > 1) {
-           std::cout << "File is corrupted. Please delete it and create a new one." << std::endl;
-       } else if (timestamps.size() == 1) {
-           // Translate time(nullptr) to a human-readable format
-           time_t time_value = std::stol(timestamps.at(0));
-           std::cout << "Last time you tried to access this database was " << ctime(&time_value);
-           ioh::write_file(session.getFilePath(), IOHandlingTag::DEL_TIMESTAMP, timestamps.at(0));
-       } else {
-           std::cout << "It's your first time here!" << std::endl;
-       }
-       ioh::write_file(session.getFilePath(), IOHandlingTag::TIMESTAMP, std::to_string(time(nullptr)));
-    }
-
-    void returningUser::display_passwords(Session& session) {
-        std::vector<std::string> passwords = ioh::read_file(session.getFilePath(), session.getPassword(),IOHandlingTag::ENTRY);
-        std::cout << "Passwords:" << std::endl;
-        for (std::string password : passwords) {
-            std::cout << password << std::endl;
-        }
-    }
-
-    void returningUser::search_passwords(Session& session) {
-
-    }
+/**
+ * Loguje lub rejestruje użytkownika.
+ */
+void com::initialize() {
 
 
-    void returningUser::display_categories(Session& session) {
-        std::vector<std::string> categories = ioh::read_file(session.getFilePath(), session.getPassword(),IOHandlingTag::CATEGORY);
-        std::cout << "Categories:" << std::endl;
-        for (int i = 0; i < categories.size(); i++) {
-            std::cout << "[" << i << "] " << categories.at(i) << std::endl;
-        }
-    }
+    const int kLogIn {0};
+    const int kRegister {1};
+    const int kExit {2};
 
-    void returningUser::add_password(Session& session) {
-        std::cout << "Please provide a name for your new password:" << std::endl;
-        std::string name;
-        std::cin >> name;
-        std::cout << "Please provide a password:" << std::endl;
-        std::cout << "You might consider this randomly generated password: " << ioh::generate_password() << std::endl;
-        std::string password;
-        std::cin >> password;
-        std::cout << "Great! Please choose a category for your password:" << std::endl;
-        std::vector<std::string> categories = ioh::read_file(session.getFilePath(), session.getPassword(),IOHandlingTag::CATEGORY);
-        std::cout << "Categories:" << std::endl;
-        for (int i = 0; i < categories.size(); i++) {
-            std::cout << "[" << i << "] " << categories.at(i) << std::endl;
-        }
-        int category;
-        std::cin >> category;
-        ioh::write_file(session.getFilePath(), session.getPassword(), IOHandlingTag::ENTRY, name + "," + password + "," + categories.at(category));
-        std::cout << "Password for " << name <<  " has been added successfully!" << std::endl;
-    }
+    std::printf("%sHi! (✿◠‿◠)\n", kBlue);
+    std::printf("%sPlease begin by choosing an action from the list:\n", kStandard);
+    std::printf("%s[%i] Log in\n", kStandard, kLogIn);
+    std::printf("%s[%i] Register\n", kStandard, kRegister);
+    std::printf("%s[%i] Exit\n", kStandard, kExit);
 
-    void returningUser::search_categories(Session& session) {
+    int action;
+    std::cin >> action;
 
-    }
-
-    void returningUser::add_category(Session& session) {
-
-    }
-
-    void returningUser::initialize(Session& session) {
-        std::cout << "What would you like to do?" << std::endl;
-        std::cout << "---------------" << std::endl;
-        std::cout << "[0] Display passwords" << std::endl;
-        std::cout << "[1] Search for a password" << std::endl;
-        std::cout << "[2] Add new password" << std::endl;
-        std::cout << "---------------" << std::endl;
-        std::cout << "[3] Display categories" << std::endl;
-        std::cout << "[4] Search for a category" << std::endl;
-        std::cout << "[5] Add new category" << std::endl;
-        std::cout << "---------------" << std::endl;
-        std::cout << "[6] Exit" << std::endl;
-
-        int action;
-        std::cin >> action;
-
-        switch (action) {
-            case 0:
-                returningUser::display_passwords(session);
-                break;
-            case 1:
-                returningUser::search_passwords(session);
-                break;
-            case 2:
-                returningUser::add_password(session);
-                break;
-            case 3:
-                returningUser::display_categories(session);
-                break;
-            case 4:
-                returningUser::search_categories(session);
-                break;
-            case 5:
-                returningUser::add_category(session);
-                break;
-            case 6:
-                break;
-            default:
-                std::cout << "Invalid selection. Please try again." << std::endl;
-                returningUser::initialize(session);
-                break;
+    switch (action) {
+        case kLogIn: {returning_user(); break;}
+        case kRegister: {new_user(); break;}
+        case kExit: {exit(0);}
+        default: {
+            std::printf("%sInvalid action. Please try again.\n", kRed);
+            com::initialize();
+            break;
         }
     }
 
 
 }
+
+
+/**
+ * Loguje użytkownika.
+ * Przedstawia możliwość wyboru bazy danych spośród dostępnych w folderze domyślnym
+ * lub kieruje do dostarczenia ścieżki własnej użytkownika.
+ */
+void com::returning_user() {
+
+
+    std::printf("%sGood to see you again!\n", kBlue);
+    std::printf("%sPlease begin by choosing a database from the list:\n", kStandard);
+
+    std::vector<std::string> available_files = ioh::get_available_files();
+    int i {0};
+    while (i < available_files.size()) {
+        std::printf("[%i] %s\n", i, available_files.at(i).c_str());
+        i++;
+    }
+    std::printf("%s[%i] Custom database\n", kCyan, i);
+
+    int action;
+    std::cin >> action;
+
+
+    std::string file_path;
+    if (action == i) {
+        std::printf("%sPlease enter a file path to the database you're willing to access:\n", kStandard);
+        std::cin >> file_path;
+    } else {
+        file_path = available_files.at(action);
+    }
+
+    std::printf("%sPlease enter a password to the database %s:\n", kStandard, file_path.c_str());
+    std::string password;
+    std::cin >> password;
+
+    Session session(file_path, password);
+
+
+}
+
+/**
+ * Tworzy nową bazę danych.
+ * Losuje nazwę pliku oraz prosi użytkownika o ustalenie hasła dostępowego.
+ */
+void com::new_user() {
+
+
+    std::printf("%sThanks!\n", kBlue);
+    std::printf("%sPlease enter a password path to the database you're willing to access:\n", kStandard);
+    std::printf("%sYou might want to consider using this randomly generated password: %s\n", kCyan, ioh::generate_password().c_str());
+
+    std::string password;
+    std::cin >> password;
+
+
+    Session session(password);
+    std::printf("%sGreat! Your new database %s has been created.\n", kBlue, session.getFilePath().c_str());
+
+
+    com::returning_user();
+
+
+}
+
+
+/**
+ * Informuje użytkownika o poprawności wprowadzonego hasła.
+ * Zapisuje timestamp próby logowania.
+ * @param session Aktualna sesja użytkownika (niezależnie od jej poprawnej inicjalizacji)
+ * @param status Poprawność hasła stwierdzana przez klasę Session
+ */
+void com::returningUser::password_notification(Session& session, bool status) {
+
+
+    if (status) {
+        std::printf("%sThanks! Your password is correct.\n", kBlue);
+        const std::string& timestamp = ioh::read_timestamp(session).c_str();
+        if (timestamp != "") {
+            std::printf("%sLast time you tried to access your database was on: %s.", kCyan, timestamp.c_str());
+        } else {
+            std::printf("%sThis is the first time you tried to access your database.", kRed);
+        }
+        com::returningUser::initialize(session);
+    } else {
+        std::printf("%sSorry, the entered password is not correct.\n", kRed);
+        ioh::write_timestamp(session);
+        com::initialize();
+    }
+
+
+}
+
+void com::returningUser::initialize(Session &session) {
+
+}
+

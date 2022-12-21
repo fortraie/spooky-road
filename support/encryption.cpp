@@ -1,37 +1,53 @@
+#include <algorithm>
+#include <string>
+
 #include "encryption.h"
 
+
 namespace enc {
+
+
+    /**
+     * Przekształca dostarczoną wartość zgodnie z założeniami szyfru cezara.
+     * @param plain_text Ciąg znaków, który ma zostać przekształcony.
+     * @param key Wartość przesunięcia (tzn. dla key = 3, a -> d, b -> e).
+     * @return Przekształcona wartość.
+     */
     std::string encrypt(const std::string& plain_text, const int& key) {
+
+
         std::string encrypted_text;
 
         for (char c : plain_text) {
-            char encrypted_char = c + key;
-            if (!isalpha(c)) {
-                encrypted_char = c;
-            } else if (isupper(c)) {
-                encrypted_char = (encrypted_char - 'A') % 26 + 'A';
-            } else {
-                encrypted_char = (encrypted_char - 'a') % 26 + 'a';
-            }
-            encrypted_text += encrypted_char;
+            encrypted_text = encrypted_text + (char) (c + key);
         }
 
         return encrypted_text;
+
+
     }
 
-    std::string decrypt(const std::string &cipher_text, const int &key) {
-        std::string plain_text;
-        for (char c : cipher_text) {
-            char decrypted_char = c - key;
-            if (!isalpha(c)) {
-                decrypted_char = c;
-            } else if (isupper(c)) {
-                decrypted_char = (decrypted_char - 'A' + 26) % 26 + 'A';
-            } else {
-                decrypted_char = (decrypted_char - 'a' + 26) % 26 + 'a';
-            };
-            plain_text += decrypted_char;
+
+    /**
+     * Funkcja odwrotna względem std::string encrypt(const std::string& plain_text, const int& key)
+     * Przekształca dostarczoną wartość przekształconą zgodnie z założeniami szyfru cezara w czytelny tekst.
+     * @param encrypted_text Ciąg znaków, wcześniej przekształcony z użyciem std::string encrypt(const std::string& plain_text, const int& key).
+     * @param key Wartość przesunięcia (tzn. dla key = 3, d -> a, e -> b).
+     * @return Przekształcona wartość (czytelny tekst).
+     */
+    std::string decrypt(const std::string &encrypted_text, const int &key) {
+
+
+        std::string decrypted_text;
+
+        for (char c : encrypted_text) {
+            decrypted_text = decrypted_text + (char) (c - key);
         }
-        return plain_text;
+
+        return decrypted_text;
+
+
     }
+
+
 }
