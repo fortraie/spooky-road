@@ -25,7 +25,7 @@ namespace ioh {
      * z domyślną wartością hasła.
      * @relatesalso void write_file(const std::string& file_path, const std::string &password, const IOHandlingTag& ioHandlingTag, const std::string& plain_text)
      */
-    void ioh::write_file(const std::string &file_path, const IOHandlingTag &ioHandlingTag, const std::string &plain_text) {
+    void write_file(const std::string &file_path, const IOHandlingTag &ioHandlingTag, const std::string &plain_text) {
         write_file(file_path, "", ioHandlingTag, plain_text);
     }
 
@@ -48,7 +48,7 @@ namespace ioh {
      * z domyślną wartością hasła.
      * @relatesalso std::vector<std::string> read_file(const std::string &file_path, const std::string &password, const IOHandlingTag &ioHandlingTag)
      */
-    std::vector<std::string> ioh::read_file(const std::string &file_path, const IOHandlingTag &ioHandlingTag) {
+    std::vector<std::string> read_file(const std::string &file_path, const IOHandlingTag &ioHandlingTag) {
         return read_file(file_path, "", ioHandlingTag);
     }
 
@@ -204,6 +204,42 @@ namespace ioh {
             }
         }
 
+    }
+
+
+    /**
+     * @relatesalso ioh::read_file
+     * @return Wektor zawierający wszystkie wpisy z bazy danych.
+     */
+    std::vector<Entry> read_entries(Session& session) {
+        std::vector<std::string> entries = ioh::read_file(session.getFilePath(), session.getPassword(), IOHandlingTag::ENTRY);
+        std::vector<Entry> parsed_entries;
+        
+        for (std::string& entry : entries) {
+            std::string entry_name = entry.substr(0, entry.find(','));
+            std::string entry_username = entry.substr(entry.find(',') + 1, entry.find(','));
+            std::string entry_password = entry.substr(entry.find(',') + 1, entry.find(','));
+            std::string entry_category = entry.substr(entry.find(',') + 1, entry.find(','));
+            parsed_entries.emplace_back(session, entry_name, entry_username, entry_password, Category(session, entry_category));
+        }
+
+        return parsed_entries;
+    }
+
+
+    /**
+     * @relatesalso ioh::read_file
+     * @return Wektor zawierający wszystkie kategorie z bazy danych.
+     */
+    std::vector<Category> read_categories(Session& session) {
+        std::vector<std::string> categories = ioh::read_file(session.getFilePath(), session.getPassword(), IOHandlingTag::CATEGORY);
+        std::vector<Category> parsed_categories;
+
+        for (std::string& category : categories) {
+            parsed_categories.emplace_back(session, category);
+        }
+
+        return parsed_categories;
     }
 
 

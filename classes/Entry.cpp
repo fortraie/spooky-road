@@ -1,9 +1,6 @@
-//
-// Created by Jakub Kowalewski on 21/12/2022.
-//
-
 #include "Entry.h"
 #include "../support/iohandling.h"
+
 
 Entry::Entry(const Session &session, const std::string &name, const std::string &username, const std::string &password,
              const Category &category) : session(session), name(name), username(username), password(password),

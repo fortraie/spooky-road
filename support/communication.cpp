@@ -10,14 +10,6 @@
 #define kCyan  "\x1B[36m"
 
 
-// Deklaracje funkcji
-void com::initialize();
-void com::returning_user();
-void com::new_user();
-void com::returningUser::password_notification(Session &session, bool status);
-void com::returningUser::initialize(Session &session);
-
-
 /**
  * Loguje lub rejestruje użytkownika.
  */
@@ -130,9 +122,9 @@ void com::returningUser::password_notification(Session& session, bool status) {
         std::printf("%sThanks! Your password is correct.\n", kBlue);
         const std::string& timestamp = ioh::read_timestamp(session).c_str();
         if (timestamp != "") {
-            std::printf("%sLast time you tried to access your database was on: %s.", kCyan, timestamp.c_str());
+            std::printf("%sLast time you tried to access your database was on: %s.\n", kCyan, timestamp.c_str());
         } else {
-            std::printf("%sThis is the first time you tried to access your database.", kRed);
+            std::printf("%sThis is the first time you tried to access your database.\n", kRed);
         }
         com::returningUser::initialize(session);
     } else {
@@ -144,7 +136,337 @@ void com::returningUser::password_notification(Session& session, bool status) {
 
 }
 
+
+/**
+ * Wyświetla wpisy z bazy danych i umożliwia użytkownikowi wybór akcji.
+ * @param session Udana sesja użytkownika.
+ */
+void com::returningUser::entry::display(Session &session) {
+
+
+    std::vector<Entry> entries = ioh::read_entries(session);
+    int i {0};
+    while (i < entries.size()) {
+        std::printf("%s[%i] Name: %s\n", kCyan, i, entries.at(i).getName().c_str());
+        std::printf("%s\tUsername: \t%s\n", kStandard, entries.at(i).getUsername().c_str());
+        std::printf("%s\tPassword: \t%s\n", kStandard, entries.at(i).getPassword().c_str());
+        std::printf("%s\tCategory: \t%s\n", kStandard, entries.at(i).getCategory().getName().c_str());
+        i++;
+    }
+
+
+    const int kAddEntry {0};
+    const int kEditEntry {2};
+    const int kDeleteEntry {1};
+    const int kExit {3};
+
+
+    std::printf("%sPlease begin by choosing an action from the list:\n", kStandard);
+    std::printf("%s[%i] Add new entry\n", kStandard, kAddEntry);
+    std::printf("%s[%i] Delete entry\n", kStandard, kDeleteEntry);
+    std::printf("%s[%i] Modify entry\n", kStandard, kEditEntry);
+    std::printf("%s[%i] Exit\n", kStandard, kExit);
+
+    int action;
+    std::cin >> action;
+
+    switch (action) {
+        case kAddEntry: {com::returningUser::entry::add(session); break;}
+        case kDeleteEntry: {
+            std::printf("%sPlease enter an index of the entry you want to delete:\n", kStandard);
+
+            int index;
+            std::cin >> index;
+
+            entries.at(index).destroy();
+
+            std::printf("%sEntry has been deleted.\n", kRed);
+
+            com::returningUser::entry::display(session);
+
+            break;
+        }
+        case kEditEntry: {
+            std::printf("%sPlease enter an index of the entry you want to modify:\n", kStandard);
+
+            int index;
+            std::cin >> index;
+
+            const int kEntryModName {0};
+            const int kEntryModUsername {1};
+            const int kEntryModPassword {2};
+            const int kEntryModCategory {3};
+
+            std::printf("%sWhat would you like to modify?\n", kStandard);
+            std::printf("%s[%i] Name\n", kStandard, kEntryModName);
+            std::printf("%s[%i] Username\n", kStandard, kEntryModUsername);
+            std::printf("%s[%i] Password\n", kStandard, kEntryModPassword);
+            std::printf("%s[%i] Category\n", kStandard, kEntryModCategory);
+
+            int action;
+            std::cin >> action;
+
+            switch (action) {
+                case kEntryModName: {
+                    std::printf("%sPlease enter a new name:\n", kStandard);
+                    std::string name;
+                    std::cin >> name;
+                    entries.at(index).setName(name);
+                    std::printf("%sName has been changed.\n", kBlue);
+                    com::returningUser::entry::display(session);
+                    break;
+                }
+                case kEntryModUsername: {
+                    std::printf("%sPlease enter a new username:\n", kStandard);
+                    std::string username;
+                    std::cin >> username;
+                    entries.at(index).setUsername(username);
+                    std::printf("%sUsername has been changed.\n", kBlue);
+                    com::returningUser::entry::display(session);
+                    break;
+                }
+                case kEntryModPassword: {
+                    std::printf("%sPlease enter a new password:\n", kStandard);
+                    std::string password;
+                    std::cin >> password;
+                    entries.at(index).setPassword(password);
+                    std::printf("%sPassword has been changed.\n", kBlue);
+                    com::returningUser::entry::display(session);
+                    break;
+                }
+                case kEntryModCategory: {
+                    std::printf("%sPlease enter a new category:\n", kStandard);
+                    std::string category;
+                    std::cin >> category;
+                    entries.at(index).setCategory(Category(session, category));
+                    std::printf("%sCategory has been changed.\n", kBlue);
+                    com::returningUser::entry::display(session);
+                    break;
+                }
+                default: {
+                    std::printf("%sSorry, the entered action is not valid.\n", kRed);
+                    com::returningUser::entry::display(session);
+                    break;
+                }
+            }
+
+            break;
+        }
+        case kExit: {com::returningUser::initialize(session); break;}
+        default: {
+            std::printf("%sInvalid action. Please try again.\n", kRed);
+            com::returningUser::entry::display(session);
+            break;
+        }
+    }
+
+
+}
+
+
+/**
+ * Wyszukuje wpisy w bazie danych.
+ * @param session Udana sesja użytkownika.
+ */
+void com::returningUser::entry::search(Session& session) {
+    std::vector<Entry> entries = ioh::read_entries(session);
+    std::printf("%sPlease enter a keyword to search for:\n", kStandard);
+    std::string keyword;
+    std::cin >> keyword;
+    int i {0};
+    while (i < entries.size()) {
+        if (entries.at(i).getName().find(keyword) != std::string::npos) {
+            std::printf("%s[%i] Name: %s\n", kCyan, i, entries.at(i).getName().c_str());
+            std::printf("%s\tUsername: \t%s\n", kStandard, entries.at(i).getUsername().c_str());
+            std::printf("%s\tPassword: \t%s\n", kStandard, entries.at(i).getPassword().c_str());
+            std::printf("%s\tCategory: \t%s\n", kStandard, entries.at(i).getCategory().getName().c_str());
+        }
+        i++;
+    }
+    com::returningUser::initialize(session);
+}
+
+
+/**
+ * Umożliwia dodanie nowego wpisu do bazy danych.
+ * @param session Udana sesja użytkownika.
+ */
+void com::returningUser::entry::add(Session& session) {
+    std::printf("%sPlease enter a name of the entry:\n", kStandard);
+    std::string name;
+    std::cin >> name;
+    std::printf("%sPlease enter a username:\n", kStandard);
+    std::string username;
+    std::cin >> username;
+    std::printf("%sPlease enter a password:\n", kStandard);
+    std::printf("%sYou might want to consider using a randomly generated password: %s.\n", kCyan, ioh::generate_password().c_str());
+    std::string password;
+    std::cin >> password;
+    std::printf("%sPlease choose an index of the category:\n", kStandard);
+    std::vector<Category> categories = ioh::read_categories(session);
+    int i {0};
+    while (i < categories.size()) {
+        std::printf("%s[%i] %s\n", kStandard, i, categories.at(i).getName().c_str());
+        i++;
+    }
+    int category_index;
+    std::cin >> category_index;
+    Entry entry(session, name, username, password, categories.at(category_index));
+    std::printf("%sEntry %s has been added.\n", kBlue, entry.getName().c_str());
+    com::returningUser::initialize(session);
+}
+
+
+/**
+ * Wyświetla kategorie z bazy danych i umożliwia użytkownikowi wybór akcji.
+ * @param session Udana sesja użytkownika.
+ */
+void com::returningUser::category::display(Session &session) {
+
+
+    std::vector<Category> categories = ioh::read_categories(session);
+
+    int i {0};
+    for (Category category : categories) {
+        std::printf("%s[%i] %s\n", kStandard, i, category.getName().c_str());
+        i++;
+    }
+
+    const int kCategoryAdd {0};
+    const int kCategoryRemove {1};
+    const int kCategoryModify {2};
+    const int kExit {3};
+
+    std::printf("%sPlease enter an action:\n", kStandard);
+    std::printf("%s[%i] Add a new category\n", kStandard, kCategoryAdd);
+    std::printf("%s[%i] Delete a category\n", kStandard, kCategoryRemove);
+    std::printf("%s[%i] Modify a category\n", kStandard, kCategoryModify);
+    std::printf("%s[%i] Exit\n", kStandard, kExit);
+
+    int action;
+    std::cin >> action;
+
+    switch (action) {
+        case kCategoryAdd: {com::returningUser::category::add(session); break;}
+        case kCategoryRemove: {
+            std::printf("%sPlease enter an index of the category to remove:\n", kStandard);
+            int index;
+            std::cin >> index;
+            categories.at(index).destroy();
+            std::printf("%sCategory has been removed.\n", kBlue);
+            com::returningUser::category::display(session);
+            break;
+        }
+        case kCategoryModify: {
+            std::printf("%sPlease enter an index of the category to modify:\n", kStandard);
+            int index;
+            std::cin >> index;
+            std::printf("%sPlease enter a new name of the category:\n", kStandard);
+            std::string name;
+            std::cin >> name;
+            categories.at(index).setName(name);
+            std::printf("%sCategory has been modified.\n", kBlue);
+            com::returningUser::category::display(session);
+            break;
+        }
+        case kExit: {com::returningUser::initialize(session); break;}
+        default: {
+            std::printf("%sInvalid action. Please try again.\n", kRed);
+            com::returningUser::category::display(session);
+            break;
+        }
+    }
+
+
+}
+
+
+/**
+ * Umożliwia dodanie nowej kategorii do bazy danych.
+ * @param session Udana sesja użytkownika.
+ */
+void com::returningUser::category::add(Session& session) {
+
+
+    std::printf("%sPlease enter a name of the category:\n", kStandard);
+    std::string name;
+    std::cin >> name;
+    Category category(session, name);
+    std::printf("%sCategory %s has been added.\n", kBlue, category.getName().c_str());
+    com::returningUser::initialize(session);
+
+
+}
+
+
+/**
+ * Umożliwia wyszukiwanie kategorii na podstawie jej nazwy.
+ * @param session Udana sesja użytkownika.
+ */
+void com::returningUser::category::search(Session &session) {
+    std::vector<Category> categories = ioh::read_categories(session);
+    std::printf("%sPlease enter a keyword to search for:\n", kStandard);
+    std::string keyword;
+    std::cin >> keyword;
+    int i {0};
+    while (i < categories.size()) {
+        if (categories.at(i).getName().find(keyword) != std::string::npos) {
+            std::printf("%s[%i] %s\n", kCyan, i, categories.at(i).getName().c_str());
+        }
+        i++;
+    }
+    com::returningUser::initialize(session);
+
+}
+
+
+/**
+ * Pozwala zalogowanemu użytkownikowi przeglądać lub dokonywać modyfikacji bazy danych.
+ * @param session Udana sesja użytkownika.
+ */
 void com::returningUser::initialize(Session &session) {
 
+
+    const int kEntryDisplay {0};
+    const int kEntrySearch {1};
+    const int kEntryAdd {2};
+
+    const int kCategoryDisplay {3};
+    const int kCategorySearch {4};
+    const int kCategoryAdd {5};
+
+    const int kExit {6};
+
+
+    std::printf("%sPlease begin by choosing an action from the list:\n", kStandard);
+    std::printf("%s-----------------------\n", kStandard);
+    std::printf("%s[%i] Display entries\n", kStandard, kEntryDisplay);
+    std::printf("%s[%i] Search entries\n", kStandard, kEntrySearch);
+    std::printf("%s[%i] Add entry\n", kStandard, kEntryAdd);
+    std::printf("%s-----------------------\n", kStandard);
+    std::printf("%s[%i] Display categories\n", kStandard, kCategoryDisplay);
+    std::printf("%s[%i] Search categories\n", kStandard, kCategorySearch);
+    std::printf("%s[%i] Add category\n", kStandard, kCategoryAdd);
+    std::printf("%s-----------------------\n", kStandard);
+    std::printf("%s[%i] Exit\n", kStandard, kExit);
+
+
+    int action;
+    std::cin >> action;
+
+    switch (action) {
+        case kEntryDisplay: {com::returningUser::entry::display(session); break;}
+        case kEntrySearch: {com::returningUser::entry::search(session); break;}
+        case kEntryAdd: {com::returningUser::entry::add(session); break;}
+        case kCategoryDisplay: {com::returningUser::category::display(session); break;}
+        case kCategorySearch: {com::returningUser::category::search(session); break;}
+        case kCategoryAdd: {com::returningUser::category::add(session); break;}
+        case kExit: {exit(0);}
+        default: {
+            std::printf("%sInvalid action. Please try again.\n", kRed);
+            com::returningUser::initialize(session);
+            break;
+        }
+    }
 }
 

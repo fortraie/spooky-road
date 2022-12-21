@@ -20,35 +20,32 @@ namespace com {
 
         void password_notification(Session& session, bool status);
 
+
+        namespace entry {
+
+
+            void display(Session& session);
+            void search(Session& session);
+
+            void add(Session& session);
+
+
+        }
+
+
+        namespace category {
+
+
+            void display(Session& session);
+            void search(Session& session);
+
+            void add(Session& session);
+
+
+        }
+
+
         void initialize(Session& session);
-
-
-//        namespace entriesManagement {
-//
-//
-//            void display_entries(Session& session);
-//            void search_entries(Session& session);
-//
-//            void add_entry(Session& session);
-//            void remove_entry(Entry entry);
-//            void modify_entry(Entry entry);
-//
-//
-//        }
-//
-//
-//        namespace categoriesManagement {
-//
-//
-//            void display_categories(Session& session);
-//            void search_categories(Session& session);
-//
-//            void add_category(Session& session);
-//            void remove_category(Category category);
-//            void modify_category(Category category);
-//
-//
-//        }
 
 
     }

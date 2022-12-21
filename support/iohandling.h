@@ -6,6 +6,7 @@
 
 #include "../classes/IOHandlingTag.h"
 #include "../classes/Session.h"
+#include "../classes/Entry.h"
 
 
 namespace ioh {
@@ -16,6 +17,9 @@ namespace ioh {
 
     std::vector<std::string> read_file(const std::string& file_path, const IOHandlingTag& ioHandlingTag);
     std::vector<std::string> read_file(const std::string& file_path, const std::string &password, const IOHandlingTag& ioHandlingTag);
+
+    std::vector<Entry> read_entries(Session &session);
+    std::vector<Category> read_categories(Session &session);
 
 
     std::string create_file(const std::string &password);
