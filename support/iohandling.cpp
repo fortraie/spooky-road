@@ -106,8 +106,6 @@ namespace ioh {
         write_file(file_name, password, IOHandlingTag::CATEGORY, "Entertainment");
         write_file(file_name, password,IOHandlingTag::CATEGORY, "Finance");
 
-        ioh::configure_generate_password(Session(file_name, password), 16, 1, 1, 1);
-
         return file_name;
     }
 
@@ -145,8 +143,11 @@ namespace ioh {
 
 
         std::vector<std::string> configs = read_file(session.getFilePath(), session.getPassword(), IOHandlingTag::GENERATIONCONFIG);
-        if (configs.size() != 1) {
+        if (configs.size() > 1) {
             throw std::runtime_error("Database error: invalid number of generation configs.");
+        } else if (configs.empty()) {
+            configure_generate_password(session, 16, 1, 1, 1);
+            return generate_password(session);
         }
 
         std::string config = configs[0];
@@ -283,7 +284,7 @@ namespace ioh {
     std::vector<Entry> read_entries(Session& session) {
         std::vector<std::string> entries = ioh::read_file(session.getFilePath(), session.getPassword(), IOHandlingTag::ENTRY);
         std::vector<Entry> parsed_entries;
-        
+
         for (std::string& entry : entries) {
             parsed_entries.emplace_back(parse_entry(session, entry));
         }

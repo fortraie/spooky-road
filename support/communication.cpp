@@ -92,7 +92,7 @@ void com::new_user() {
 
 
     std::printf("%sThanks!\n", kBlue);
-    std::printf("%sPlease enter a password path to the database you're willing to access:\n", kStandard);
+    std::printf("%sPlease think of a password for your new database:\n", kStandard);
 
     std::string password;
     std::cin >> password;
