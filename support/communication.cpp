@@ -93,7 +93,6 @@ void com::new_user() {
 
     std::printf("%sThanks!\n", kBlue);
     std::printf("%sPlease enter a password path to the database you're willing to access:\n", kStandard);
-    std::printf("%sYou might want to consider using this randomly generated password: %s\n", kCyan, ioh::generate_password().c_str());
 
     std::string password;
     std::cin >> password;
@@ -141,15 +140,19 @@ void com::returningUser::password_notification(Session& session, bool status) {
  * Wyświetla wpisy z bazy danych i umożliwia użytkownikowi wybór akcji.
  * @param session Udana sesja użytkownika.
  */
-void com::returningUser::entry::display(Session &session) {
+void com::returningUser::entry::display(Session &session,
+                                        std::vector<Entry> entries = {}) {
 
 
-    std::vector<Entry> entries = ioh::read_entries(session);
+    if (entries.empty()) {
+        entries = ioh::read_entries(session);
+    }
     int i {0};
     while (i < entries.size()) {
         std::printf("%s[%i] Name: %s\n", kCyan, i, entries.at(i).getName().c_str());
         std::printf("%s\tUsername: \t%s\n", kStandard, entries.at(i).getUsername().c_str());
         std::printf("%s\tPassword: \t%s\n", kStandard, entries.at(i).getPassword().c_str());
+        std::printf("%s\tURL: \t\t%s\n", kStandard, entries.at(i).getUrl().c_str());
         std::printf("%s\tCategory: \t%s\n", kStandard, entries.at(i).getCategory().getName().c_str());
         i++;
     }
@@ -158,13 +161,15 @@ void com::returningUser::entry::display(Session &session) {
     const int kAddEntry {0};
     const int kEditEntry {2};
     const int kDeleteEntry {1};
-    const int kExit {3};
+    const int kSortEntries {3};
+    const int kExit {4};
 
 
     std::printf("%sPlease begin by choosing an action from the list:\n", kStandard);
     std::printf("%s[%i] Add new entry\n", kStandard, kAddEntry);
     std::printf("%s[%i] Delete entry\n", kStandard, kDeleteEntry);
     std::printf("%s[%i] Modify entry\n", kStandard, kEditEntry);
+    std::printf("%s[%i] Sort entries\n", kStandard, kSortEntries);
     std::printf("%s[%i] Exit\n", kStandard, kExit);
 
     int action;
@@ -195,12 +200,14 @@ void com::returningUser::entry::display(Session &session) {
             const int kEntryModName {0};
             const int kEntryModUsername {1};
             const int kEntryModPassword {2};
-            const int kEntryModCategory {3};
+            const int kEntryModUrl {3};
+            const int kEntryModCategory {4};
 
             std::printf("%sWhat would you like to modify?\n", kStandard);
             std::printf("%s[%i] Name\n", kStandard, kEntryModName);
             std::printf("%s[%i] Username\n", kStandard, kEntryModUsername);
             std::printf("%s[%i] Password\n", kStandard, kEntryModPassword);
+            std::printf("%s[%i] URL\n", kStandard, kEntryModUrl);
             std::printf("%s[%i] Category\n", kStandard, kEntryModCategory);
 
             int action;
@@ -234,6 +241,15 @@ void com::returningUser::entry::display(Session &session) {
                     com::returningUser::entry::display(session);
                     break;
                 }
+                case kEntryModUrl: {
+                    std::printf("%sPlease enter a new URL:\n", kStandard);
+                    std::string url;
+                    std::cin >> url;
+                    entries.at(index).setUrl(url);
+                    std::printf("%sURL has been changed.\n", kBlue);
+                    com::returningUser::entry::display(session);
+                    break;
+                }
                 case kEntryModCategory: {
                     std::printf("%sPlease enter a new category:\n", kStandard);
                     std::string category;
@@ -253,6 +269,49 @@ void com::returningUser::entry::display(Session &session) {
             break;
         }
         case kExit: {com::returningUser::initialize(session); break;}
+        case kSortEntries: {
+            std::printf("%sPlease enter a value you want to sort by:\n", kStandard);
+
+            const int kSortByName {0};
+            const int kSortByUsername {1};
+            const int kSortByBoth {2};
+
+            std::printf("%s[%i] Name\n", kStandard, kSortByName);
+            std::printf("%s[%i] Username\n", kStandard, kSortByUsername);
+            std::printf("%s[%i] Both\n", kStandard, kSortByBoth);
+
+            int action;
+            std::cin >> action;
+
+            switch (action) {
+                case kSortByName: {
+                    std::sort(entries.begin(), entries.end(), [](const Entry& a, const Entry& b) {
+                        return a.getName() < b.getName();
+                    });
+                    com::returningUser::entry::display(session, entries);
+                    break;
+                }
+                case kSortByUsername: {
+                    std::sort(entries.begin(), entries.end(), [](const Entry& a, const Entry& b) {
+                        return a.getUsername() < b.getUsername();
+                    });
+                    com::returningUser::entry::display(session, entries);
+                    break;
+                }
+                case kSortByBoth: {
+                    std::sort(entries.begin(), entries.end(), [](const Entry& a, const Entry& b) {
+                        return a.getName() + a.getUsername() < b.getName() + b.getUsername();
+                    });
+                    com::returningUser::entry::display(session, entries);
+                    break;
+                }
+                default: {
+                    std::printf("%sSorry, the entered action is not valid.\n", kRed);
+                    com::returningUser::entry::display(session);
+                    break;
+                }
+            }
+        }
         default: {
             std::printf("%sInvalid action. Please try again.\n", kRed);
             com::returningUser::entry::display(session);
@@ -295,13 +354,14 @@ void com::returningUser::entry::add(Session& session) {
     std::printf("%sPlease enter a name of the entry:\n", kStandard);
     std::string name;
     std::cin >> name;
-    std::printf("%sPlease enter a username:\n", kStandard);
-    std::string username;
-    std::cin >> username;
     std::printf("%sPlease enter a password:\n", kStandard);
-    std::printf("%sYou might want to consider using a randomly generated password: %s.\n", kCyan, ioh::generate_password().c_str());
+    std::printf("%sYou might want to consider using a randomly generated password: %s.\n", kCyan, ioh::generate_password(session).c_str());
     std::string password;
     std::cin >> password;
+    if (ioh::unsafe_password(session, password)) {
+        std::printf("%sYou have entered an unsafe password (more than 1 occurence). Please try again.\n", kRed);
+        com::returningUser::entry::add(session);
+    }
     std::printf("%sPlease choose an index of the category:\n", kStandard);
     std::vector<Category> categories = ioh::read_categories(session);
     int i {0};
@@ -311,7 +371,35 @@ void com::returningUser::entry::add(Session& session) {
     }
     int category_index;
     std::cin >> category_index;
-    Entry entry(session, name, username, password, categories.at(category_index));
+
+
+    std::string answer;
+    std::string username;
+    std::string url;
+
+    std::printf("%sYou might consider adding a username to your entry.\n", kCyan);
+    std::printf("%sWould you like to add a username? [y/n]\n", kStandard);
+
+    std::cin >> answer;
+    if (answer == "y") {
+        std::printf("%sPlease enter a username:\n", kStandard);
+        std::cin >> username;
+    } else {
+        username = "";
+    }
+
+    std::printf("%sYou might consider adding a URL to your entry.\n", kCyan);
+    std::printf("%sWould you like to add a URL? [y/n]\n", kStandard);
+
+    std::cin >> answer;
+    if (answer == "y") {
+        std::printf("%sPlease enter a URL:\n", kStandard);
+        std::cin >> url;
+    } else {
+        url = "";
+    }
+
+    Entry entry(session, name, username, password, url, categories.at(category_index));
     std::printf("%sEntry %s has been added.\n", kBlue, entry.getName().c_str());
     com::returningUser::initialize(session);
 }
@@ -435,7 +523,9 @@ void com::returningUser::initialize(Session &session) {
     const int kCategorySearch {4};
     const int kCategoryAdd {5};
 
-    const int kExit {6};
+    const int kConfigurePasswordGeneration {6};
+
+    const int kExit {7};
 
 
     std::printf("%sPlease begin by choosing an action from the list:\n", kStandard);
@@ -447,6 +537,8 @@ void com::returningUser::initialize(Session &session) {
     std::printf("%s[%i] Display categories\n", kStandard, kCategoryDisplay);
     std::printf("%s[%i] Search categories\n", kStandard, kCategorySearch);
     std::printf("%s[%i] Add category\n", kStandard, kCategoryAdd);
+    std::printf("%s-----------------------\n", kStandard);
+    std::printf("%s[%i] Configure password generation\n", kStandard, kConfigurePasswordGeneration);
     std::printf("%s-----------------------\n", kStandard);
     std::printf("%s[%i] Exit\n", kStandard, kExit);
 
@@ -461,6 +553,7 @@ void com::returningUser::initialize(Session &session) {
         case kCategoryDisplay: {com::returningUser::category::display(session); break;}
         case kCategorySearch: {com::returningUser::category::search(session); break;}
         case kCategoryAdd: {com::returningUser::category::add(session); break;}
+        case kConfigurePasswordGeneration: {com::returningUser::configurePasswordGeneration(session); break;}
         case kExit: {exit(0);}
         default: {
             std::printf("%sInvalid action. Please try again.\n", kRed);
@@ -468,5 +561,32 @@ void com::returningUser::initialize(Session &session) {
             break;
         }
     }
+}
+
+
+/**
+ * Umożliwia użytkownikowi ustalenie sposobu generowania haseł.
+ * @param session Udana sesja użytkownika.
+ */
+void com::returningUser::configurePasswordGeneration(Session &session) {
+
+
+    std::printf("%sPlease enter a password length:\n", kStandard);
+    int length;
+    std::cin >> length;
+    std::printf("%sPlease enter whether you want to use uppercase letters: (0/1)\n", kStandard);
+    bool uppercase;
+    std::cin >> uppercase;
+    std::printf("%sPlease enter whether you want to use lowercase letters: (0/1)\n", kStandard);
+    bool lowercase;
+    std::cin >> lowercase;
+    std::printf("%sPlease enter whether you want to use special characters: (0/1)\n", kStandard);
+    bool specialCharacters;
+    std::cin >> specialCharacters;
+    ioh::configure_generate_password(session, length, uppercase, lowercase, specialCharacters);
+    std::printf("%sPassword generation has been configured.\n", kBlue);
+    com::returningUser::initialize(session);
+
+
 }
 

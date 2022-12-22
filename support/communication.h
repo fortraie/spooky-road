@@ -24,7 +24,7 @@ namespace com {
         namespace entry {
 
 
-            void display(Session& session);
+            void display(Session& session, std::vector<Entry> entries);
             void search(Session& session);
 
             void add(Session& session);
@@ -48,6 +48,7 @@ namespace com {
         void initialize(Session& session);
 
 
+        void configurePasswordGeneration(Session &session);
     }
 
 }

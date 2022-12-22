@@ -27,11 +27,17 @@ namespace ioh {
     std::vector<std::string> get_available_files();
 
 
-    std::string generate_password();
+    std::string generate_password(const Session& session);
+    void configure_generate_password(const Session& session, const int& length, const bool& use_uppercase, const bool& use_lowercase, const bool& use_special_characters);
 
 
     void write_timestamp(Session& session);
     std::string read_timestamp(Session& session);
+
+
+    Entry parse_entry(Session& session, const std::string& entry_string);
+
+    bool unsafe_password(Session& session, const std::string& password);
 
 
 }

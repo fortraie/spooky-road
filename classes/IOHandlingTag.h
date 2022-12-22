@@ -3,6 +3,8 @@
 
 
 enum class IOHandlingTag {
+
+
     X_SHIFT = 1,
 
     PASSWORD = X_SHIFT + 1,
@@ -15,7 +17,12 @@ enum class IOHandlingTag {
     DEL_ENTRY = ENTRY + X_SHIFT,
 
     CATEGORY = DEL_ENTRY + 1,
-    DEL_CATEGORY = CATEGORY + X_SHIFT
+    DEL_CATEGORY = CATEGORY + X_SHIFT,
+
+    GENERATIONCONFIG = DEL_CATEGORY + 1,
+    DEL_GENERATIONCONFIG = GENERATIONCONFIG + X_SHIFT,
+
+
 };
 
 

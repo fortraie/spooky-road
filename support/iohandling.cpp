@@ -106,6 +106,8 @@ namespace ioh {
         write_file(file_name, password, IOHandlingTag::CATEGORY, "Entertainment");
         write_file(file_name, password,IOHandlingTag::CATEGORY, "Finance");
 
+        ioh::configure_generate_password(Session(file_name, password), 16, 1, 1, 1);
+
         return file_name;
     }
 
@@ -139,22 +141,87 @@ namespace ioh {
      * Generuje losowy ciąg znaków o długości zgodnej z kPasswordGenerationLength
      * @return Losowy ciąg znaków o długości zgodnej z kPasswordGenerationLength
      */
-    std::string generate_password() {
+    std::string generate_password(const Session& session) {
+
+
+        std::vector<std::string> configs = read_file(session.getFilePath(), session.getPassword(), IOHandlingTag::GENERATIONCONFIG);
+        if (configs.size() != 1) {
+            throw std::runtime_error("Database error: invalid number of generation configs.");
+        }
+
+        std::string config = configs[0];
+        std::stringstream ss(config);
+
+        std::string length_str;
+        std::string use_uppercase_str;
+        std::string use_lowercase_str;
+        std::string use_special_characters_str;
+
+        std::getline(ss, length_str, ',');
+        std::getline(ss, use_uppercase_str, ',');
+        std::getline(ss, use_lowercase_str, ',');
+        std::getline(ss, use_special_characters_str, ',');
+
+        int length = std::stoi(length_str);
+        bool use_uppercase = use_uppercase_str == "1";
+        bool use_lowercase = use_lowercase_str == "1";
+        bool use_special_characters = use_special_characters_str == "1";
+
         static const char alphanum[] =
                 "0123456789"
                 "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                 "abcdefghijklmnopqrstuvwxyz";
+        static const char special_characters[] = "!@#$%^&*()_+-=[]{}|;':\"./<>?";
+
         std::string password;
-        password.reserve(kPasswordGenerationLength);
+        password.reserve(length);
 
         std::random_device rd;
         std::mt19937 gen(rd());
-        std::uniform_int_distribution<> dis(0, sizeof(alphanum) - 2);
+        std::uniform_int_distribution<> dis(0, 62);
 
-        for (int i = 0; i < kPasswordGenerationLength; ++i) {
-            password += alphanum[dis(gen)];
+        for (int i = 0; i < length; ++i) {
+            if (use_special_characters && std::rand() % 2 == 0) {
+                password += special_characters[std::rand() % (sizeof(special_characters) - 1)];
+            } else {
+                password += alphanum[dis(gen)];
+            }
         }
+
+        if (!use_uppercase) {
+            std::transform(password.begin(), password.end(), password.begin(), ::tolower);
+        }
+        if (!use_lowercase) {
+            std::transform(password.begin(), password.end(), password.begin(), ::toupper);
+        }
+
         return password;
+
+
+    }
+
+
+    /**
+     * Pozwala użytkownikowi stale (dla danej bazy danych) skonfigurować personalizowanie generowania haseł.
+     * @param session Udana sesja użytkownika.
+     * @param length Długość generowanego hasła.
+     * @param use_uppercase Fakt, czy ma być używana wielka litera.
+     * @param use_lowercase Fakt, czy ma być używana mała litera.
+     * @param use_special_characters Fakt, czy ma być używany znak specjalny.
+     */
+    void configure_generate_password(const Session& session, const int &length, const bool &use_uppercase,
+                                     const bool &use_lowercase, const bool &use_special_characters) {
+        std::string outContent = std::to_string(length) + "," + std::to_string(use_uppercase) + "," +
+                                 std::to_string(use_lowercase) + "," + std::to_string(use_special_characters);
+
+
+        std::vector<std::string> configs = read_file(session.getFilePath(), session.getPassword(), IOHandlingTag::GENERATIONCONFIG);
+        for (const std::string& config : configs) {
+            write_file(session.getFilePath(), session.getPassword(), IOHandlingTag::DEL_GENERATIONCONFIG, config);
+        }
+
+
+        ioh::write_file(session.getFilePath(), session.getPassword(), IOHandlingTag::GENERATIONCONFIG, outContent);
     }
 
 
@@ -197,7 +264,9 @@ namespace ioh {
             case 1: {
                 write_timestamp(session);
                 time_t time_value = std::stol(timestamps.at(0));
-                return ctime(&time_value);
+                std::string time_string = std::ctime(&time_value);
+                time_string.erase(std::remove(time_string.begin(), time_string.end(), '\n'), time_string.end());
+                return time_string;
             }
             default: {
                 return nullptr;
@@ -216,11 +285,7 @@ namespace ioh {
         std::vector<Entry> parsed_entries;
         
         for (std::string& entry : entries) {
-            std::string entry_name = entry.substr(0, entry.find(','));
-            std::string entry_username = entry.substr(entry.find(',') + 1, entry.find(','));
-            std::string entry_password = entry.substr(entry.find(',') + 1, entry.find(','));
-            std::string entry_category = entry.substr(entry.find(',') + 1, entry.find(','));
-            parsed_entries.emplace_back(session, entry_name, entry_username, entry_password, Category(session, entry_category));
+            parsed_entries.emplace_back(parse_entry(session, entry));
         }
 
         return parsed_entries;
@@ -240,6 +305,48 @@ namespace ioh {
         }
 
         return parsed_categories;
+    }
+
+
+    /**
+     * Przekształca wpis z bazy danych na obiekt Entry.
+     * @param session Udana sesja użytkownika.
+     * @param entry_string Wpis z bazy danych.
+     * @return Obiekt typu Entry.
+     */
+    Entry parse_entry(Session &session, const std::string &entry_string) {
+        std::stringstream ss(entry_string);
+
+        std::string entry_name;
+        std::string entry_username;
+        std::string entry_password;
+        std::string entry_url;
+        std::string entry_category;
+
+        std::getline(ss, entry_name, ',');
+        std::getline(ss, entry_username, ',');
+        std::getline(ss, entry_password, ',');
+        std::getline(ss, entry_url, ',');
+        std::getline(ss, entry_category, ',');
+
+        return Entry(session, entry_name, entry_username, entry_password, entry_url, Category(session, entry_category));
+    }
+
+
+    /**
+     * Weryfikuje czy podany ciąg znaków jest poprawnym hasłem - informuje o wystąpieniu wpisu o tym samym haśle.
+     * @param session Udana sesja użytkownika.
+     * @param password Hasło, które ma zostać sprawdzone.
+     * @return Wartość logiczna informująca o poprawności hasła.
+     */
+    bool unsafe_password(Session& session, const std::string &password) {
+        std::vector<Entry> entries = ioh::read_entries(session);
+        for (Entry entry : entries) {
+            if (entry.getPassword() == password) {
+                return true;
+            }
+        }
+        return false;
     }
 
 

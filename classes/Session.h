@@ -11,15 +11,21 @@
 class Session {
 
 private:
+
+
     std::string file_path;
     std::string password;
 
+
 public:
+
+
     Session(const std::string &file_path, const std::string &password);
     explicit Session(const std::string &password);
 
     const std::string &getFilePath() const;
     const std::string &getPassword() const;
+
 
 };
 
